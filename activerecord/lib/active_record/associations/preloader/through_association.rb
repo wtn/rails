@@ -35,6 +35,12 @@ module ActiveRecord
             end
 
             records.compact!
+            # The through scope eager loads the source records without the
+            # `strict_loading` value of our scope.
+            strict_loading = scope.strict_loading_value
+            if !strict_loading.nil? && through_scope_filters_source?
+              records.each { |record| record.strict_loading!(strict_loading) }
+            end
             if source_order_applies?
               # A reused loaded target can hold records missing from the index,
               # such as new ones: keep them last, in their loaded order.
@@ -226,6 +232,10 @@ module ActiveRecord
                 scope.order_values = reflection_scope.order_values
                 scope.default_order_values = reflection_scope.default_order_values
               end
+
+              # As from a relation, the records loaded with the source records
+              # cascade our `strict_loading`.
+              scope.strict_loading! if self.scope.strict_loading_value
             end
 
             cascade_strict_loading(scope)

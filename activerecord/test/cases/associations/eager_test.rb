@@ -1406,6 +1406,51 @@ class EagerAssociationTest < ActiveRecord::TestCase
     end
   end
 
+  def test_preload_strict_loading_filtered_has_many_through
+    expected = authors(:david).strict_loading_welcome_post_comments.sort_by(&:id)
+    assert_not_empty expected
+
+    preloaded = Author.preload(:strict_loading_welcome_post_comments).find(authors(:david).id).strict_loading_welcome_post_comments.sort_by(&:id)
+
+    assert_equal expected, preloaded
+    preloaded.each { |record| assert_predicate record, :strict_loading? }
+  end
+
+  def test_preload_strict_loading_has_many_through_a_filtered_nested_one
+    expected = authors(:mary).strict_loading_misc_tags.sort_by(&:id)
+    assert_not_empty expected
+
+    preloaded = Author.preload(:strict_loading_misc_tags).find(authors(:mary).id).strict_loading_misc_tags.sort_by(&:id)
+
+    assert_equal expected, preloaded
+    preloaded.each { |record| assert_predicate record, :strict_loading? }
+  end
+
+  def test_preload_strict_loading_filtered_has_many_through_loading_records_under_the_source_records
+    Rating.create!(comment: comments(:greetings), value: 1)
+
+    %i[strict_loading_welcome_post_comments_with_preload strict_loading_welcome_post_comments_with_eager_load].each do |association|
+      ratings = Author.preload(association).find(authors(:david).id).public_send(association).flat_map(&:ratings)
+      assert_not_empty ratings, association
+
+      ratings.each { |rating| assert_predicate rating, :strict_loading?, association }
+    end
+  end
+
+  def test_preload_non_strict_loading_filtered_has_many_through_with_strict_loading_by_default
+    previous_strict_loading_by_default = Comment.strict_loading_by_default
+    Comment.strict_loading_by_default = true
+    expected = authors(:david).non_strict_loading_welcome_post_comments.sort_by(&:id)
+    assert_not_empty expected
+
+    preloaded = Author.preload(:non_strict_loading_welcome_post_comments).find(authors(:david).id).non_strict_loading_welcome_post_comments.sort_by(&:id)
+
+    assert_equal expected, preloaded
+    preloaded.each { |record| assert_not_predicate record, :strict_loading? }
+  ensure
+    Comment.strict_loading_by_default = previous_strict_loading_by_default
+  end
+
   def test_preload_has_many_through_with_default_order
     author = Author.create!(name: "Preload Test")
     [posts(:welcome), posts(:sti_post_and_comments), posts(:sti_comments), posts(:thinking)].each do |post|

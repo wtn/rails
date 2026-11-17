@@ -117,6 +117,11 @@ class Author < ActiveRecord::Base
   has_many :comments_with_eager_load, -> { eager_load(:ratings).where(posts: { type: "Post" }) }, through: :posts, source: :comments
   has_many :good_ratings_of_comments_with_preload, -> { where("ratings.value > 5") }, through: :comments_with_preload, source: :ratings
   has_many :good_ratings_of_comments_with_eager_load, -> { where("ratings.value > 5") }, through: :comments_with_eager_load, source: :ratings
+  has_many :strict_loading_welcome_post_comments, -> { where("posts.title = 'Welcome to the weblog'").strict_loading }, through: :posts, source: :comments
+  has_many :strict_loading_misc_tags, -> { strict_loading }, through: :posts, source: :misc_tags
+  has_many :strict_loading_welcome_post_comments_with_preload, -> { where("posts.title = 'Welcome to the weblog'").preload(:ratings).strict_loading }, through: :posts, source: :comments
+  has_many :strict_loading_welcome_post_comments_with_eager_load, -> { where("posts.title = 'Welcome to the weblog'").eager_load(:ratings).strict_loading }, through: :posts, source: :comments
+  has_many :non_strict_loading_welcome_post_comments, -> { where("posts.title = 'Welcome to the weblog'").strict_loading(false) }, through: :posts, source: :comments
   has_many :comments_for_first_author, -> { for_first_author }, through: :posts, source: :comments
 
   has_many :first_posts
